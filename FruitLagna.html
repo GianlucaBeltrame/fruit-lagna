@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fruit Lagna</title>
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    background: url('https://i.imgur.com/Y8vHfIq.jpg') no-repeat center center fixed;
+    background-size: cover;
+    overflow: hidden;
+    font-family: sans-serif;
+  }
+  #gameArea {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .fruit, .bomb, .killer {
+    position: absolute;
+    user-select: none;
+    pointer-events: none;
+    transition: transform 0.3s ease;
+  }
+  .fruit {
+    width: 16vw;
+    height: auto;
+  }
+  .bomb {
+    width: 16vw;
+    height: auto;
+    filter:
+      drop-shadow(0 0 3px red)
+      drop-shadow(0 0 6px red)
+      drop-shadow(0 0 10px red);
+    animation: glowRed 2s infinite alternate;
+    border-radius: 50%;
+  }
+  .killer {
+    width: 20vw;
+    height: auto;
+    filter:
+      drop-shadow(0 0 3px black)
+      drop-shadow(0 0 6px black)
+      drop-shadow(0 0 10px black);
+    animation: glowBlack 2s infinite alternate;
+    border-radius: 50%;
+  }
+  @keyframes glowRed {
+    0% { filter: drop-shadow(0 0 2px red) drop-shadow(0 0 5px red) drop-shadow(0 0 8px red); }
+    100% { filter: drop-shadow(0 0 6px red) drop-shadow(0 0 12px red) drop-shadow(0 0 20px red); }
+  }
+  @keyframes glowBlack {
+    0% { filter: drop-shadow(0 0 2px black) drop-shadow(0 0 5px black) drop-shadow(0 0 8px black); }
+    100% { filter: drop-shadow(0 0 6px black) drop-shadow(0 0 12px black) drop-shadow(0 0 20px black); }
+  }
+  .special {
+    filter: drop-shadow(0 0 3px gold) drop-shadow(0 0 6px gold) drop-shadow(0 0 10px orange);
+    transition: filter 1.5s ease-in-out;
+    animation: glowPulse 2.5s infinite alternate;
+    border-radius: 50%;
+  }
+  @keyframes glowPulse {
+    0% { filter: drop-shadow(0 0 2px gold) drop-shadow(0 0 5px gold) drop-shadow(0 0 8px orange); }
+    100% { filter: drop-shadow(0 0 6px gold) drop-shadow(0 0 12px gold) drop-shadow(0 0 20px orange); }
+  }
+  .sliced {
+    animation: sliceAnim 0.5s forwards;
+  }
+  @keyframes sliceAnim {
+    to { transform: rotate(720deg) scale(0); opacity: 0; }
+  }
+  #score {
+    position: absolute;
+    top: 10px; left: 10px;
+    font-size: 4vw;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px 20px;
+    border-radius: 12px;
+    z-index: 1000;
+    user-select: none;
+    color: darkred;
+    font-weight: bold;
+    box-shadow: 0 0 10px red;
+    display: none;
+  }
+  #hearts {
+    position: absolute;
+    top: 10px; right: 10px;
+    z-index: 1000;
+    display: none;
+  }
+  .heart {
+    width: 40px;
+    margin-left: 5px;
+  }
+  #gameOver {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 6vw;
+    background: red;
+    color: white;
+    padding: 20px 40px;
+    border-radius: 12px;
+    display: none;
+    text-align: center;
+    user-select: none;
+    z-index: 1001;
+  }
+  #gameOver button {
+    font-size: 4vw;
+    padding: 10px 20px;
+    margin-top: 20px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    background: white;
+    color: red;
+  }
+  #beginMessage {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 8vw;
+    color: yellow;
+    text-shadow: 2px 2px 10px black;
+    display: none;
+    user-select: none;
+    z-index: 500;
+    opacity: 0;
+    animation: beginFade 5s forwards;
+  }
+  @keyframes beginFade {
+    0% { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .ketchup {
+    position: absolute;
+    width: 15vw;
+    height: auto;
+    pointer-events: none;
+    animation: ketchupFade 1s forwards;
+    z-index: 1500;
+  }
+  @keyframes ketchupFade {
+    to { opacity: 0; transform: scale(2); }
+  }
+  #startButton {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5vw;
+    padding: 20px 40px;
+    background: green;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    z-index: 1001;
+  }
+</style>
+</head>
+<body>
+
+<div id="gameArea">
+  <div id="score">Triple sbagliate di Gian: 0</div>
+  <div id="hearts">
+    <img src="https://imgur.com/wpIogji.png" class="heart" id="heart1">
+    <img src="https://imgur.com/wpIogji.png" class="heart" id="heart2">
+    <img src="https://imgur.com/wpIogji.png" class="heart" id="heart3">
+  </div>
+  <div id="gameOver">
+    Game Over !!!<br />
+    Sei proprio un trotterellone poco maturo!<br />
+    <button onclick="location.reload()">Riprova</button>
+  </div>
+  <div id="beginMessage">BEGINNNNN!</div>
+  <button id="startButton">INIZIA</button>
+</div>
+
+<script>
+const gameArea = document.getElementById('gameArea');
+const scoreDisplay = document.getElementById('score');
+const gameOverDisplay = document.getElementById('gameOver');
+const beginMessage = document.getElementById('beginMessage');
+const startButton = document.getElementById('startButton');
+
+let hearts = [
+  document.getElementById('heart1'),
+  document.getElementById('heart2'),
+  document.getElementById('heart3')
+];
+
+let score = 0;
+let lives = 3;
+let gameRunning = false;
+
+const fruitsImgs = [ /* immagini */ 
+  'https://i.imgur.com/kiWVxAt.png', 'https://i.imgur.com/IBu9rYi.png',
+  'https://i.imgur.com/UqR7yt4.png', 'https://i.imgur.com/jxsFkBN.png',
+  'https://i.imgur.com/9gd46bZ.png', 'https://i.imgur.com/siiyLUz.png',
+  'https://i.imgur.com/ucY5mul.png', 'https://i.imgur.com/CHgaGsz.png',
+  'https://i.imgur.com/qYrQZ9Y.png', 'https://i.imgur.com/WhMb1Of.png',
+  'https://i.imgur.com/H9I1CEd.png', 'https://i.imgur.com/lGcGBuF.png',
+  'https://i.imgur.com/qZDJfQt.png', 'https://i.imgur.com/d8Hwdu1.png',
+  'https://i.imgur.com/Hv1J96Y.png', 'https://i.imgur.com/h3A2W5g.png',
+  'https://i.imgur.com/ky7kLSl.png', 'https://i.imgur.com/AR4798e.png',
+  'https://i.imgur.com/TDNzcMs.png', 'https://i.imgur.com/DGAgoNh.png'
+];
+const bombsImgs = [ 'https://i.imgur.com/J2fHuqA.png', 'https://i.imgur.com/lin3Rks.png' ];
+const killerImg = 'https://imgur.com/MyLQDky.png';
+const specialFruitUrl = 'https://i.imgur.com/Hv1J96Y.png';
+
+let specialFruitsCut = 0;
+let beginEventActive = false;
+const activeItems = new Set();
+let spawnInterval = null;
+
+function startGame() {
+  gameRunning = true;
+  startButton.style.display = 'none';
+  scoreDisplay.style.display = 'block';
+  document.getElementById('hearts').style.display = 'block';
+
+  spawnInterval = setInterval(() => {
+    if (!beginEventActive) {
+      spawnItem();
+    }
+  }, 550);
+}
+
+startButton.addEventListener('click', startGame);
+
+function randomX(itemType) {
+  const width = itemType === 'killer' ? window.innerWidth * 0.33 : window.innerWidth * 0.16;
+  return Math.random() * (window.innerWidth - width);
+}
+
+function randomSpeed() {
+  return 2 + Math.random() * 3;
+}
+
+function spawnItem(isSpecial = false) {
+  if (!gameRunning) return;
+
+  let isBomb = false;
+  let isKiller = false;
+  let src;
+
+  if (beginEventActive || isSpecial) {
+    src = specialFruitUrl;
+  } else {
+    const rand = Math.random();
+    if (rand < 0.15) {
+      isBomb = true;
+      src = bombsImgs[Math.floor(Math.random() * bombsImgs.length)];
+    } else if (rand < 0.18) {
+      isKiller = true;
+      src = killerImg;
+    } else {
+      src = fruitsImgs[Math.floor(Math.random() * fruitsImgs.length)];
+    }
+  }
+
+  const item = document.createElement('img');
+  if (isKiller) item.classList.add('killer');
+  else if (isBomb) item.classList.add('bomb');
+  else {
+    item.classList.add('fruit');
+    if (src === specialFruitUrl) item.classList.add('special');
+  }
+
+  item.src = src;
+  item.style.left = `${randomX(isKiller ? 'killer' : '')}px`;
+  item.style.bottom = '0px';
+  item.rotation = Math.random() < 0.5 ? 1 : -1;
+  item.angle = 0;
+
+  gameArea.appendChild(item);
+  activeItems.add(item);
+
+  let y = 0;
+  const speed = randomSpeed();
+
+  const moveInterval = setInterval(() => {
+    if (!gameRunning) {
+      clearInterval(moveInterval);
+      if (item.parentElement) item.remove();
+      activeItems.delete(item);
+      return;
+    }
+    y += speed;
+    item.angle += item.rotation * 4;
+    item.style.bottom = `${y}px`;
+    item.style.transform = `rotate(${item.angle}deg)`;
+
+    if (y > window.innerHeight) {
+      clearInterval(moveInterval);
+      if (item && !item.classList.contains('sliced')) {
+        if (!beginEventActive && !item.classList.contains('killer') && !item.classList.contains('bomb'))
+ {
+          loseLife();
+        }
+        if (item.parentElement) item.remove();
+        activeItems.delete(item);
+      }
+    }
+  }, 20);
+}
+
+function startBeginEvent() {
+  if (beginEventActive) return;
+  beginEventActive = true;
+  beginMessage.style.display = 'block';
+  beginMessage.style.animation = 'none';
+  void beginMessage.offsetWidth;
+  beginMessage.style.animation = 'beginFade 5s forwards';
+
+  let count = 0;
+  const eventInterval = setInterval(() => {
+    if (!gameRunning) {
+      clearInterval(eventInterval);
+      return;
+    }
+    spawnItem(true);
+    spawnItem(true);
+    spawnItem(true);
+    count += 550;
+    if (count >= 5000) {
+      clearInterval(eventInterval);
+      for (let item of [...activeItems]) {
+        if (item.parentElement) item.remove();
+        activeItems.delete(item);
+      }
+      beginEventActive = false;
+      specialFruitsCut = 0;
+    }
+  }, 550);
+}
+
+function loseLife() {
+  lives--;
+  if (lives >= 0 && hearts[lives]) hearts[lives].style.opacity = '0.3';
+  if (lives <= 0) gameOver();
+}
+
+function gameOver() {
+  gameRunning = false;
+  gameOverDisplay.style.display = 'block';
+}
+
+function updateScore(points) {
+  score += points;
+  scoreDisplay.textContent = `Triple sbagliate di Gian: ${score}`;
+}
+
+function sliceItem(item) {
+  if (!item || item.classList.contains('sliced')) return;
+
+  const ketchup = document.createElement('img');
+  ketchup.src = 'https://imgur.com/rb7WCxt.png';
+  ketchup.classList.add('ketchup');
+
+  const rect = item.getBoundingClientRect();
+  ketchup.style.left = `${rect.left}px`;
+  ketchup.style.top = `${rect.top}px`;
+
+  document.body.appendChild(ketchup);
+
+  setTimeout(() => ketchup.remove(), 1000);
+  item.classList.add('sliced');
+  setTimeout(() => { if (item.parentElement) item.remove(); activeItems.delete(item); }, 500);
+
+  if (item.classList.contains('killer')) { gameOver(); return; }
+  if (item.classList.contains('bomb')) { loseLife(); return; }
+
+  if (item.classList.contains('special')) {
+    if (!beginEventActive) specialFruitsCut++;
+    updateScore(beginEventActive ? 1 : 10);
+    if (specialFruitsCut === 3 && !beginEventActive) startBeginEvent();
+  } else { updateScore(1); }
+}
+
+let mouseDown = false;
+
+function handleSlice(x, y) {
+  for (let item of [...activeItems]) {
+    const rect = item.getBoundingClientRect();
+    if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+      sliceItem(item);
+    }
+  }
+}
+
+gameArea.addEventListener('mousedown', e => { mouseDown = true; handleSlice(e.clientX, e.clientY); });
+gameArea.addEventListener('mouseup', () => { mouseDown = false; });
+gameArea.addEventListener('mousemove', e => { if (mouseDown) handleSlice(e.clientX, e.clientY); });
+gameArea.addEventListener('touchstart', e => { for (let touch of e.touches) handleSlice(touch.clientX, touch.clientY); });
+gameArea.addEventListener('touchmove', e => { e.preventDefault(); for (let touch of e.touches) handleSlice(touch.clientX, touch.clientY); }, { passive: false });
+
+</script>
+</body>
+</html>
